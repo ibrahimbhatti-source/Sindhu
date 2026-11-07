@@ -4,4 +4,7 @@
 
 AI Research in Sindhi language is evoluting at a fast pace, and Sindhu can be a good contributer in it. But it is still in the development phase this is just an Pre-launch of Minimum Viable Product. 
 
-MVP will be available for public use in few days, thanks!</p>
+MVP will be available for public use in few days, thanks!
+</p>
+
+https://github.com/user-attachments/assets/ac9208fc-e480-4fd2-87a1-af79ab330b65
