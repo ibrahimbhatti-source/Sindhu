@@ -1,1 +1,1 @@
-(./sindhu-github-banner.svg)
+![Sindhu Banner](./sindhu-github-banner.svg)
