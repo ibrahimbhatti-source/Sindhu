@@ -6,7 +6,7 @@ AI Research in Sindhi language is evoluting at a fast pace; moreover, Sindhu can
 
 ![Sindhu Banner](./sindhugithubbanner.svg)
 
-[Live Demo Link](https://sindhu-teal.vercel.app/) · [Report Bug, Request Feature](ibrahimbhatti.dev@gmail.com) 
+[Live Demo Link](https://sindhu-v1.vercel.app/) 
 
 > **Prototype Notice:** This project is an early stage prototype (MVP) features are actively changing, performance is not fully optimized.
 
