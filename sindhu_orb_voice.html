@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08080c">
+  <meta name="color-scheme" content="dark">
+  <title>Sindhu — Voice Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #08080c;
+      --text: #f4f0f8;
+      --muted: #898696;
+      --border: rgba(255, 255, 255, .09);
+      --orb-size: clamp(158px, 23vmin, 208px);
+      --accent: #ff58bd;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { background: var(--background); color: var(--text); overflow: hidden; }
+    button { font: inherit; }
+    ::selection { background: #a332c5; color: #fff; }
+
+    .app {
+      position: relative;
+      height: 100svh;
+      min-height: 490px;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        radial-gradient(ellipse 34% 27% at 49% 48%, rgba(78, 12, 76, .085), transparent 80%),
+        #08080c;
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background: linear-gradient(155deg, rgba(130, 62, 155, .035), transparent 34%, transparent 72%, rgba(86, 29, 118, .035));
+    }
+
+    .topbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: clamp(23px, 3.5vw, 42px) clamp(24px, 5vw, 68px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 14px; font-weight: 700; letter-spacing: .23em; }
+    .brand-glyph {
+      width: 23px;
+      height: 23px;
+      display: block;
+      border-radius: 50%;
+      background: radial-gradient(circle at 28% 33%, #ffbd68, #fb44a3 49%, #6a22ed 88%);
+      box-shadow: 0 0 24px rgba(221, 41, 175, .3);
+    }
+    .brand em { color: #ff6cae; font-style: normal; }
+
+    .top-status { display: flex; align-items: center; gap: 11px; color: #a9a3b4; font-size: 10px; font-weight: 600; letter-spacing: .19em; white-space: nowrap; }
+    .top-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #a19aa9; box-shadow: 0 0 12px rgba(225, 210, 238, .3); transition: background .35s, box-shadow .35s; }
+    .app[data-state="recording"] .top-status-dot { background: #ff619b; box-shadow: 0 0 16px #ff438a; }
+    .app[data-state="thinking"] .top-status-dot { background: #af80ff; box-shadow: 0 0 16px #9d5dff; }
+    .app[data-state="playing"] .top-status-dot { background: #ff75c7; box-shadow: 0 0 16px #ff75c7; }
+
+    .eyebrow {
+      position: absolute;
+      left: 50%;
+      top: calc(50% - var(--orb-size) / 2 - 83px);
+      transform: translateX(-50%);
+      margin: 0;
+      text-align: center;
+      white-space: nowrap;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .36em;
+      color: #78717f;
+    }
+
+    .orb-shell {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: var(--orb-size);
+      height: var(--orb-size);
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: transparent;
+      outline-offset: 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      isolation: isolate;
+      z-index: 2;
+    }
+    .orb-shell:focus-visible { outline: 2px solid rgba(255, 142, 209, .85); }
+    .orb-shell:disabled { opacity: 1; cursor: progress; }
+    .orb-shell:not(:disabled):hover .orb-sphere { filter: brightness(1.12) saturate(1.08); }
+
+    .orb-aura, .orb-halo, .orb-wave, .orb-sphere { position: absolute; border-radius: 50%; pointer-events: none; }
+    .orb-aura {
+      inset: -91%;
+      z-index: -3;
+      opacity: .75;
+      filter: blur(36px);
+      background:
+        radial-gradient(ellipse 34% 34% at 36% 51%, rgba(237, 36, 72, .22), transparent 76%),
+        radial-gradient(ellipse 36% 43% at 65% 48%, rgba(117, 9, 220, .22), transparent 78%);
+      animation: aura-breathe 6.2s ease-in-out infinite;
+    }
+    .orb-halo {
+      inset: -29%;
+      z-index: -2;
+      filter: blur(26px);
+      opacity: .68;
+      background: conic-gradient(from 210deg, rgba(255, 68, 102, .22), rgba(255, 87, 194, .11), rgba(111, 25, 240, .26), rgba(255, 68, 102, .22));
+      animation: halo-breathe 6.2s ease-in-out infinite;
+    }
+    .orb-sphere {
+      inset: 0;
+      overflow: hidden;
+      box-shadow:
+        inset -17px -11px 26px rgba(59, 0, 115, .37),
+        inset 11px 14px 25px rgba(255, 179, 140, .13),
+        0 0 22px rgba(238, 32, 161, .22),
+        0 0 76px rgba(170, 20, 176, .15),
+        0 0 128px rgba(225, 37, 93, .09);
+      background:
+        radial-gradient(circle at 24% 36%, rgba(255, 183, 94, .98) 0%, rgba(255, 115, 98, .82) 16%, rgba(255, 73, 111, .20) 37%, transparent 58%),
+        radial-gradient(ellipse at 65% 23%, rgba(248, 44, 212, .96) 0%, rgba(220, 29, 210, .83) 28%, transparent 65%),
+        radial-gradient(ellipse at 78% 82%, rgba(103, 11, 241, .99) 0%, rgba(131, 3, 210, .72) 43%, transparent 72%),
+        linear-gradient(125deg, #ff7c64 0%, #f3298f 51%, #8500ed 100%);
+      animation: orb-breathe 6.2s ease-in-out infinite;
+      will-change: transform, filter;
+    }
+    .orb-sphere::before {
+      content: "";
+      position: absolute;
+      inset: -16%;
+      border-radius: inherit;
+      background: radial-gradient(ellipse 42% 51% at 30% 38%, rgba(255, 208, 113, .41), transparent 85%);
+      filter: blur(14px);
+      mix-blend-mode: screen;
+      animation: light-drift 8s ease-in-out infinite alternate;
+    }
+    .orb-sphere::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(ellipse at 46% 3%, rgba(255, 215, 241, .18), transparent 47%);
+      box-shadow: inset 0 -10px 22px rgba(50, 0, 113, .12);
+    }
+    .orb-wave {
+      inset: -14%;
+      z-index: -1;
+      opacity: 0;
+      border: 1px solid rgba(255, 99, 192, .48);
+      box-shadow: 0 0 30px rgba(255, 75, 172, .12), inset 0 0 24px rgba(165, 47, 233, .12);
+    }
+
+    .orb-shell.recording .orb-sphere { animation: orb-heartbeat 1.1s ease-in-out infinite; }
+    .orb-shell.recording .orb-aura { animation: aura-breathe 1.1s ease-in-out infinite; opacity: 1; }
+    .orb-shell.recording .orb-halo { animation: halo-breathe 1.1s ease-in-out infinite; }
+    .orb-shell.recording .orb-wave-one { animation: wave-out 1.8s ease-out infinite; }
+    .orb-shell.recording .orb-wave-two { animation: wave-out 1.8s ease-out .85s infinite; }
+
+    .orb-shell.thinking .orb-sphere { animation: orb-thinking 4.4s linear infinite; }
+    .orb-shell.thinking .orb-halo { animation: halo-spin 3s linear infinite; opacity: 1; }
+    .orb-shell.thinking .orb-aura { animation: aura-breathe 2.7s ease-in-out infinite; }
+    .orb-shell.thinking .orb-sphere::before { animation: light-drift 2s ease-in-out infinite alternate; }
+    /* The existing voice orb pulses and radiates waves while Sindhu speaks. */
+    .orb-shell.playing .orb-sphere { animation: orb-speaking 1.13s ease-in-out infinite; box-shadow: 0 0 35px rgba(255, 78, 184, .30), 0 0 92px rgba(159, 51, 238, .30), inset 10px 14px 28px rgba(255, 209, 170, .20); }
+    .orb-shell.playing .orb-aura { animation: aura-speaking 1.65s ease-in-out infinite; opacity: 1; }
+    .orb-shell.playing .orb-halo { animation: halo-speaking 1.75s ease-in-out infinite; opacity: 1; }
+    .orb-shell.playing .orb-wave-one { animation: wave-speaking 1.55s ease-out infinite; }
+    .orb-shell.playing .orb-wave-two { animation: wave-speaking 1.55s ease-out .65s infinite; }
+    /* If autoplay is blocked, the orb invites a tap to play the reply. */
+    .orb-shell.readyToPlay .orb-halo { animation: halo-breathe 2.4s ease-in-out infinite; opacity: .9; }
+
+    .center-meta {
+      position: absolute;
+      top: calc(50% + var(--orb-size) / 2 + 39px);
+      left: 50%;
+      width: min(360px, 90vw);
+      transform: translateX(-50%);
+      text-align: center;
+    }
+    .state-title { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -.02em; color: #eee8f2; }
+    .state-subtitle { margin: 9px 0 0; min-height: 20px; font-size: 12px; line-height: 1.6; color: #87808f; }
+
+    .live-meter { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 14px; margin-right: 9px; vertical-align: -2px; opacity: 0; width: 0; overflow: hidden; transition: opacity .2s, width .2s; }
+    .live-meter span { width: 2px; height: 5px; border-radius: 2px; background: #ff72b5; animation: meter 0.72s ease-in-out infinite alternate; }
+    .live-meter span:nth-child(2) { animation-delay: -.26s; }
+    .live-meter span:nth-child(3) { animation-delay: -.53s; }
+    .live-meter span:nth-child(4) { animation-delay: -.16s; }
+    .live-meter span:nth-child(5) { animation-delay: -.39s; }
+    .app[data-state="recording"] .live-meter { width: 27px; opacity: 1; }
+
+    /* Playback uses hidden audio: the orb is the only visible voice UI. */
+    #replyAudio { display: none; }
+
+    .toast {
+      position: absolute;
+      top: 95px;
+      left: 50%;
+      z-index: 9;
+      width: min(480px, calc(100% - 36px));
+      padding: 13px 17px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 117, 155, .27);
+      color: #ffc4d5;
+      background: rgba(43, 18, 34, .92);
+      backdrop-filter: blur(20px);
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -10px);
+      transition: opacity .25s, transform .25s, visibility .25s;
+    }
+    .toast.visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+    .footer { position: absolute; left: 0; right: 0; bottom: 8px; color: #4f4955; font-size: 9px; letter-spacing: .13em; text-align: center; pointer-events: none; }
+
+    @keyframes orb-breathe { 0%, 100% { transform: scale(.985); filter: brightness(.95) blur(.15px); } 50% { transform: scale(1.055); filter: brightness(1.13) blur(.35px); } }
+    @keyframes aura-breathe { 0%, 100% { transform: scale(.88); opacity: .6; } 50% { transform: scale(1.12); opacity: .95; } }
+    @keyframes halo-breathe { 0%, 100% { transform: scale(.9); opacity: .48; } 50% { transform: scale(1.15); opacity: .83; } }
+    @keyframes light-drift { from { transform: translate(-4%, 3%) rotate(-12deg); } to { transform: translate(9%, -7%) rotate(17deg); } }
+    @keyframes orb-heartbeat { 0%, 100% { transform: scale(.99); filter: brightness(1); } 23% { transform: scale(1.13); filter: brightness(1.2); } 38% { transform: scale(1.02); filter: brightness(1.04); } 55% { transform: scale(1.09); filter: brightness(1.16); } 76% { transform: scale(.98); filter: brightness(.97); } }
+    @keyframes wave-out { 0% { transform: scale(.74); opacity: .7; } 100% { transform: scale(1.64); opacity: 0; } }
+    @keyframes orb-thinking { 0% { transform: rotate(0deg) scale(1); filter: hue-rotate(0deg) brightness(1.07); } 50% { transform: rotate(180deg) scale(1.055); filter: hue-rotate(180deg) brightness(1.18); } 100% { transform: rotate(360deg) scale(1); filter: hue-rotate(360deg) brightness(1.07); } }
+    /* Speaking motions intentionally vary in intensity for a natural visual effect. */
+    @keyframes orb-speaking { 0%, 100% { transform: scale(.97) rotate(-2deg); filter: brightness(1.02); } 22% { transform: scale(1.09) rotate(2deg); filter: brightness(1.22); } 46% { transform: scale(1.015); filter: brightness(1.08); } 72% { transform: scale(1.14) rotate(-2deg); filter: brightness(1.25); } }
+    @keyframes aura-speaking { 0%, 100% { transform: scale(.90); opacity: .7; } 55% { transform: scale(1.25); opacity: 1; } }
+    @keyframes halo-speaking { 0%, 100% { transform: scale(.88) rotate(0); opacity: .52; } 60% { transform: scale(1.25) rotate(28deg); opacity: 1; } }
+    @keyframes wave-speaking { 0% { transform: scale(.82); opacity: .72; } 100% { transform: scale(1.52); opacity: 0; } }
+    @keyframes halo-spin { to { transform: rotate(360deg); } }
+    @keyframes meter { 0% { height: 4px; } 100% { height: 14px; } }
+
+    @media (max-width: 560px) {
+      .topbar { padding: 25px 23px; }
+      .brand { font-size: 12px; }
+      .top-status { font-size: 9px; letter-spacing: .1em; }
+      .eyebrow { font-size: 9px; letter-spacing: .22em; }
+      .state-title { font-size: 16px; }
+      .center-meta { top: calc(50% + var(--orb-size) / 2 + 28px); }
+      .footer { display: none; }
+    }
+    @media (max-height: 680px) {
+      .orb-shell { top: 44%; }
+      .eyebrow { top: calc(44% - var(--orb-size) / 2 - 55px); }
+      .center-meta { top: calc(44% + var(--orb-size) / 2 + 24px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app" data-state="idle">
+    <header class="topbar">
+      <div class="brand" aria-label="Sindhu Voice Intelligence">
+        <span class="brand-glyph" aria-hidden="true"></span>
+        <span>Sindhu<em>.</em></span>
+      </div>
+      <div class="top-status" aria-live="polite">
+        <span class="top-status-dot" aria-hidden="true"></span>
+        <span id="topStatus">READY TO LISTEN</span>
+      </div>
+    </header>
+
+    <p class="eyebrow">A MORE NATURAL CONVERSATION</p>
+
+    <button class="orb-shell idle" id="orbButton" type="button" aria-label="Start recording" aria-pressed="false">
+      <span class="orb-aura" aria-hidden="true"></span>
+      <span class="orb-halo" aria-hidden="true"></span>
+      <span class="orb-wave orb-wave-one" aria-hidden="true"></span>
+      <span class="orb-wave orb-wave-two" aria-hidden="true"></span>
+      <span class="orb-sphere" aria-hidden="true"></span>
+    </button>
+
+    <div class="center-meta" role="status" aria-live="polite" aria-atomic="true">
+      <p class="state-title" id="stateTitle"><span class="live-meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span><span id="stateTitleText">Tap to speak</span></p>
+      <p class="state-subtitle" id="stateSubtitle"></p>
+    </div>
+
+    <!-- Hidden audio still plays aloud; no player or text transcript is shown. -->
+    <audio id="replyAudio" preload="none"></audio>
+
+    <div class="toast" id="toast" role="alert"></div>
+
+  </main>
+
+  <!-- MP3 encoder: converts microphone recordings into genuine MP3 files in the browser. -->
+  <!-- The browser must be online to load this library from the CDN. -->
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+
+  <script>
+    // "use strict" asks JavaScript to reject some common coding mistakes.
+    // Python comparison: Python already raises errors for many of these cases.
+    "use strict";
+
+    // ===================== 1. BACKEND CONFIGURATION =====================
+    // "const" is a variable you cannot reassign (roughly a fixed reference).
+    // This is the address of the Python backend API that receives recorded audio.
+    const API_URL = "/process_audio";
+
+    // The backend expects an uploaded file under the form field named "file".
+    const AUDIO_FIELD = "file";
+    // Maximum waiting time for a server response: 90,000 milliseconds = 90 seconds.
+    const REQUEST_TIMEOUT_MS = 90000;
+
+    // ===================== 2. FIND HTML ELEMENTS =====================
+    // document.getElementById("...") finds an HTML element by its id.
+    // Think of these as references to objects representing parts of the page.
+    const app = document.getElementById("app");                 // Whole app container.
+    const orbButton = document.getElementById("orbButton");     // Round record/stop button.
+    const topStatus = document.getElementById("topStatus");     // Top-right status text.
+    const stateTitle = document.getElementById("stateTitleText"); // Text below the orb.
+    const stateSubtitle = document.getElementById("stateSubtitle"); // Smaller help text.
+    const replyAudio = document.getElementById("replyAudio");   // Hidden audio for speaker playback.
+    const toast = document.getElementById("toast");             // Temporary error/info popup.
+
+    // ===================== 3. APP VARIABLES =====================
+    // "let" means these variables can change later. Python variables work similarly.
+    let phase = "idle";          // Current state: "idle", "recording", or "thinking".
+    let isStarting = false;      // Prevent two microphone-start requests at once.
+    let recorder = null;         // Browser MediaRecorder object; null means not set yet.
+    let stream = null;           // Live stream from the microphone.
+    let audioChunks = [];        // List/array of recorded audio pieces (like a Python list).
+    let captureError = null;     // Stores an error if audio capture fails.
+    let activeRequest = null;    // Controller used to cancel the active server request.
+    let toastTimer = null;       // Timer for hiding the temporary popup.
+    let isUnloading = false;     // True when the user is leaving the page.
+    let audioObjectUrl = null;   // Temporary URL for binary audio responses.
+
+    // A JavaScript object is like a Python dictionary.
+    // Each state maps to three strings: [main title, description, top status].
+    const labels = {
+      idle: ["Tap to speak", "Your voice, a new kind of interface.", "READY TO LISTEN"],
+      recording: ["Listening to you", "Tap the orb when you're finished speaking.", "MICROPHONE ACTIVE"],
+      thinking: ["Preparing your voice reply", "Processing your recording…", "THINKING"],
+      playing: ["Sindhu is speaking", "Tap the orb to interrupt and speak.", "SPEAKING"],
+      readyToPlay: ["Reply is ready", "Tap the orb to hear Sindhu.", "TAP TO PLAY"]
+    };
+
+    // ===================== 4. UPDATE THE INTERFACE STATE =====================
+    // "function" is like "def" in Python. The argument "next" is the new state.
+    function setPhase(next) {
+      phase = next; // Remember the new state for the rest of the program.
+      // HTML data-state changes CSS appearance, e.g. recording glow/animation.
+      app.dataset.state = next;
+      // Remove all old state classes, then add only the current state class.
+      orbButton.classList.remove("idle", "recording", "thinking", "playing", "readyToPlay");
+      orbButton.classList.add(next);
+      // === compares values; || means "or" (as in Python's "or").
+      // Do not allow clicks while the server is processing or mic is starting.
+      orbButton.disabled = next === "thinking" || isStarting;
+      // aria-* labels help screen readers understand the button.
+      // String(...) converts a boolean (true/false) into text.
+      orbButton.setAttribute("aria-pressed", String(next === "recording"));
+      // The ?: syntax is a compact "if ... else" expression (Python's ternary).
+      orbButton.setAttribute("aria-label", next === "recording" ? "Stop recording" : next === "thinking" ? "Processing audio" : next === "readyToPlay" ? "Play Sindhu reply" : next === "playing" ? "Interrupt reply and speak" : "Start recording");
+      // textContent changes the text shown inside an HTML element.
+      // labels[next][0], [1], and [2] access the three strings in our state list.
+      stateTitle.textContent = labels[next][0];
+      stateSubtitle.textContent = labels[next][1];
+      topStatus.textContent = labels[next][2];
+    }
+
+    // ===================== 5. SHOW A TEMPORARY NOTIFICATION =====================
+    function notify(message) {
+      // Cancel an old hide timer so a new notification gets the full display time.
+      clearTimeout(toastTimer);
+      toast.textContent = message;            // Put the message inside the popup.
+      toast.classList.add("visible");        // CSS makes the popup visible.
+      // setTimeout runs a function later; 6500 milliseconds = 6.5 seconds.
+      // () => ... is an arrow function, similar to a short Python lambda.
+      toastTimer = setTimeout(() => toast.classList.remove("visible"), 6500);
+    }
+
+    // ===================== 6. RELEASE THE MICROPHONE =====================
+    function releaseMicrophone() {
+      // Only do cleanup when a microphone stream currently exists.
+      if (stream) {
+        // A stream contains tracks; forEach runs the callback for each track.
+        // Python comparison: for track in stream_tracks: track.stop()
+        stream.getTracks().forEach(track => track.stop());
+        stream = null; // Forget the closed stream so it is not reused accidentally.
+      }
+    }
+
+    // ===================== 7. PREPARE AUDIO FOR A NEW RECORDING =====================
+    function clearPreviousReply() {
+      replyAudio.pause();
+      replyAudio.removeAttribute("src");
+      replyAudio.load();
+      if (audioObjectUrl) {
+        URL.revokeObjectURL(audioObjectUrl);
+        audioObjectUrl = null;
+      }
+    }
+
+    // ===================== 8. CHOOSE AN AUDIO RECORDING FORMAT =====================
+    function getRecorderOptions() {
+      // Browsers support different audio file formats; try these in order.
+      const types = ["audio/mpeg", "audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"];
+      // .find(...) returns the first supported type (like next(..., None) in Python).
+      const mimeType = types.find(type => MediaRecorder.isTypeSupported(type));
+      // If one works, return { mimeType: mimeType }; otherwise return an empty object.
+      // { mimeType } is JavaScript shorthand for { mimeType: mimeType }.
+      return mimeType ? { mimeType } : {};
+    }
+
+    // ===================== 9. CONVERT RECORDED AUDIO TO MP3 =====================
+    async function convertRecordingToMp3(recordedBlob) {
+      // Step 1: If the browser already recorded genuine MP3, send it unchanged.
+      if (recordedBlob.type.toLowerCase().includes("audio/mpeg")) {
+        return recordedBlob;
+      }
+
+      // Step 2: Check that the browser has loaded our MP3 encoder library.
+      // The library is needed because MediaRecorder normally produces WebM or MP4.
+      if (!window.lamejs?.Mp3Encoder) {
+        throw new Error("MP3 encoder could not load. Check your internet connection.");
+      }
+      if (!(window.AudioContext || window.webkitAudioContext) || !window.OfflineAudioContext) {
+        throw new Error("Audio conversion is not supported in this browser.");
+      }
+
+      // Step 3: Decode the browser's recorded WebM/MP4 into PCM audio samples.
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      let decodedAudio;
+      try {
+        decodedAudio = await audioContext.decodeAudioData(await recordedBlob.arrayBuffer());
+      } finally {
+        await audioContext.close();
+      }
+
+      // Step 4: Convert to mono, 44,100 Hz (a standard MP3-compatible sample rate).
+      // The browser's OfflineAudioContext performs the resampling/downmixing.
+      const sampleRate = 44100;
+      const frameCount = Math.max(1, Math.ceil(decodedAudio.duration * sampleRate));
+      const offline = new OfflineAudioContext(1, frameCount, sampleRate);
+      const source = offline.createBufferSource();
+      source.buffer = decodedAudio;
+      source.connect(offline.destination);
+      source.start(0);
+      const monoAudio = await offline.startRendering();
+      const samples = monoAudio.getChannelData(0);
+
+      // Step 5: Encode the PCM samples into real MP3 frames at 96 kbps.
+      const encoder = new window.lamejs.Mp3Encoder(1, sampleRate, 96);
+      const mp3Chunks = [];
+      const blockSize = 1152;
+      for (let offset = 0; offset < samples.length; offset += blockSize) {
+        const length = Math.min(blockSize, samples.length - offset);
+        const pcm = new Int16Array(length);
+        for (let i = 0; i < length; i++) {
+          const sample = Math.max(-1, Math.min(1, samples[offset + i]));
+          pcm[i] = sample < 0 ? sample * 32768 : sample * 32767;
+        }
+        const mp3Frame = encoder.encodeBuffer(pcm);
+        if (mp3Frame.length) mp3Chunks.push(new Uint8Array(mp3Frame));
+      }
+
+      // Step 6: Flush the encoder and create an MP3 Blob for the API upload.
+      const lastFrame = encoder.flush();
+      if (lastFrame.length) mp3Chunks.push(new Uint8Array(lastFrame));
+      const mp3Blob = new Blob(mp3Chunks, { type: "audio/mpeg" });
+      if (!mp3Blob.size) throw new Error("MP3 conversion produced an empty file.");
+      return mp3Blob;
+    }
+
+    // ===================== 10. START MICROPHONE RECORDING =====================
+    // "async" allows this function to use "await" while requesting mic access.
+    // Python comparison: async def start_recording(): ... await something()
+    async function startRecording() {
+      // Do nothing if a recording is already running or startup is in progress.
+      // !== is "not equal to" (Python: !=).
+      if (phase !== "idle" || isStarting) return;
+      clearPreviousReply();
+      // Check whether the browser has microphone and MediaRecorder support.
+      // ?. is optional chaining: safely read a property even if a value is missing.
+      // typeof checks the type without throwing if MediaRecorder is undefined.
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+        notify("Audio recording is not supported here. Use a modern browser on HTTPS or localhost.");
+        return; // Exit early; attempting to record would fail.
+      }
+
+      // Lock the record button while the browser asks for mic permission.
+      isStarting = true;
+      orbButton.disabled = true;
+      stateTitle.textContent = "Opening microphone";
+      stateSubtitle.textContent = "Allow microphone access in your browser.";
+      topStatus.textContent = "REQUESTING ACCESS";
+
+      // try/catch is like Python's try/except: handle errors without crashing the app.
+      try {
+        // Ask the user for a live microphone stream. "await" waits for permission.
+        // video: false means this app never requests camera access.
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false
+        });
+
+        // Start each recording with an empty list and no old capture error.
+        audioChunks = [];
+        captureError = null;
+        // MediaRecorder is a browser object that converts a mic stream to audio data.
+        recorder = new MediaRecorder(stream, getRecorderOptions());
+        // Keep this recorder reference for callbacks attached below.
+        const currentRecorder = recorder;
+
+        // The "dataavailable" event is fired when the recorder produces audio.
+        // event => {...} is an arrow-function callback; "event" is its argument.
+        currentRecorder.addEventListener("dataavailable", event => {
+          // Add each nonempty recorded piece to our array (Python: list.append()).
+          if (event.data && event.data.size > 0) audioChunks.push(event.data);
+        });
+
+        // The "error" event happens if the browser cannot continue recording.
+        currentRecorder.addEventListener("error", event => {
+          // || selects a backup error when event.error is missing/falsy.
+          captureError = event.error || new Error("Microphone recording failed.");
+          // Stop recording if we are still in the recording state.
+          if (phase === "recording") stopRecording();
+        });
+
+        // When the recorder stops, send the accumulated audio to the backend.
+        // { once: true } means this listener runs only one time.
+        currentRecorder.addEventListener("stop", () => processAudio(currentRecorder), { once: true });
+
+        // Also stop if the microphone is disconnected or permission is revoked.
+        stream.getAudioTracks().forEach(track => {
+          track.addEventListener("ended", () => {
+            if (phase === "recording") stopRecording();
+          }, { once: true });
+        });
+
+        // Begin recording; 250 asks the browser to emit chunks roughly every 250 ms.
+        currentRecorder.start(250);
+        isStarting = false;       // Microphone startup has completed successfully.
+        setPhase("recording");  // Update labels, orb appearance, and button behavior.
+      } catch (error) {
+        // If any step failed, unlock the app and close any opened mic track.
+        isStarting = false;
+        releaseMicrophone();
+        recorder = null;
+        setPhase("idle");
+        // Give users a specific error message when possible.
+        // error?.name safely reads the error's name (if error exists).
+        if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
+          notify("Microphone access was denied. Allow it in your browser settings and try again.");
+        } else if (error?.name === "NotFoundError") {
+          notify("No microphone was found. Connect an input device and try again.");
+        } else {
+          notify(error?.message || "Unable to start recording.");
+        }
+      }
+    }
+
+    // ===================== 11. STOP MICROPHONE RECORDING =====================
+    function stopRecording() {
+      // Stop only if there is a recorder that is currently recording.
+      if (phase !== "recording" || !recorder) return;
+      // "thinking" means the app is handling/sending the recorded sound.
+      setPhase("thinking");
+      try {
+        // Avoid calling stop() on a recorder that has already stopped.
+        // Its "stop" event will later call processAudio(...).
+        if (recorder.state !== "inactive") recorder.stop();
+      } catch (error) {
+        setPhase("idle");
+        notify(error?.message || "Unable to stop the recording.");
+      } finally {
+        // "finally" always runs, like Python's finally block.
+        // Free the microphone even if stopping the recorder caused an error.
+        releaseMicrophone();
+      }
+    }
+
+    // ===================== 12. SEND MP3 AUDIO TO THE PYTHON BACKEND =====================
+    // This function runs after MediaRecorder fires its "stop" event.
+    async function processAudio(finishedRecorder) {
+      releaseMicrophone();       // Make sure the browser is no longer using the mic.
+      if (isUnloading) return;  // Skip work if the user is leaving this page.
+      recorder = null;         // The active recorder has finished.
+
+      // Determine the format of the recorded audio.
+      // audioChunks[0]?.type safely checks the first chunk if it exists.
+      const type = finishedRecorder.mimeType || audioChunks[0]?.type || "audio/webm";
+      // A Blob packages binary audio chunks into one uploadable object.
+      const blob = new Blob(audioChunks, { type });
+      audioChunks = []; // Clear the chunks to free memory for the next recording.
+
+      // If recording failed or produced no sound data, don't send an empty file.
+      if (captureError || blob.size === 0) {
+        setPhase("idle");
+        notify(captureError?.message || "No audio was captured. Try speaking a little longer.");
+        captureError = null;
+        return;
+      }
+
+      // Save an AbortController so navigation can cancel the HTTP request.
+      const controller = new AbortController();
+      activeRequest = controller;
+      let timeout = null;
+
+      try {
+        // Step 1: Convert the recorded WebM/MP4 Blob into a genuine MP3 file.
+        // Do not just rename a .webm file to .mp3: the audio must be re-encoded.
+        const mp3Blob = await convertRecordingToMp3(blob);
+        if (isUnloading) return;
+
+        // Step 2: Create the multipart/form-data upload expected by FastAPI.
+        // The file field name remains "file"; only the format changes to MP3.
+        const formData = new FormData();
+        formData.append(AUDIO_FIELD, mp3Blob, "recording.mp3");
+
+        // Step 3: Start the 90-second timeout when the HTTP request begins.
+        timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+        // fetch() performs the HTTP request (conceptually like requests.post in Python).
+        // "await" pauses this async function until the backend responds.
+        const response = await fetch(API_URL, {
+          method: "POST",           // Upload the recording using HTTP POST.
+          body: formData,           // Send the audio file, not JSON.
+          signal: controller.signal // Allow a timeout or page exit to cancel it.
+        });
+
+        // Debugging: inspect the HTTP response after fetch succeeds.
+        // No audio body is consumed here, so playback can still read it below.
+        console.log("Sindhu response status:", response.status);
+        console.log("Sindhu response Content-Type:", response.headers.get("content-type"));
+
+        // HTTP errors (e.g. 404, 500) do not automatically throw in fetch().
+        if (!response.ok) {
+          // Read at most 250 characters of error text from the backend.
+          const detail = (await response.text()).slice(0, 250);
+          // "throw" is similar to Python's "raise".
+          throw new Error(`Server error ${response.status}${detail ? `: ${detail}` : ""}`);
+        }
+
+        // The backend can return either:
+        //   A) Raw audio bytes, with Content-Type: audio/wav or audio/mpeg.
+        //   B) JSON containing only { "audio_data": "<base64 WAV>" }.
+        // No recognized speech or AI response text is required or displayed.
+        const contentType = (response.headers.get("content-type") || "").toLowerCase();
+        let audioSource;
+
+        if (contentType.includes("application/json") || contentType.includes("+json")) {
+          const data = await response.json();
+          if (typeof data?.audio_data !== "string" || !data.audio_data.trim()) {
+            throw new Error("The server must return a nonempty audio_data field.");
+          }
+          // The optional audio_mime_type can be e.g. "audio/mpeg" for MP3.
+          const mime = data.audio_mime_type || "audio/wav";
+          audioSource = data.audio_data.startsWith("data:")
+            ? data.audio_data
+            : `data:${mime};base64,${data.audio_data}`;
+        } else {
+          if (contentType && !contentType.startsWith("audio/") && !contentType.includes("octet-stream")) {
+            throw new Error(`Expected audio from the server, got ${contentType}.`);
+          }
+          const bytes = await response.blob();
+          if (!bytes.size) throw new Error("The server returned an empty audio response.");
+          // Turn binary audio into a temporary URL that the browser can play.
+          audioObjectUrl = URL.createObjectURL(bytes);
+          audioSource = audioObjectUrl;
+        }
+
+        // Step 4: Load the audio in a hidden element (no visible player).
+        // The glowing orb will animate when the browser starts playback.
+        replyAudio.src = audioSource;
+        replyAudio.load();
+
+        // Step 5: Try to play the voice automatically.
+        // Some browsers prevent autoplay after a long API request.
+        // If blocked, ask the user to tap the orb to hear the reply.
+        try {
+          await replyAudio.play();
+        } catch (playError) {
+          console.warn("Automatic playback unavailable:", playError);
+          if (!isUnloading) setPhase("readyToPlay");
+        }
+      } catch (error) {
+        // Keep the detailed error in the browser console for debugging.
+        console.error("Sindhu audio request/playback failed:", error);
+        // Show different messages for timeout, connectivity, and other errors.
+        // The AbortError name usually means AbortController canceled the request.
+        if (error?.name === "AbortError") {
+          notify("The request timed out. Please try again.");
+        } else if (error instanceof TypeError) {
+          // A fetch TypeError often means network access or CORS failed.
+          // "instanceof" is like checking an object's class/type in Python.
+          notify("Cannot reach the voice server. Check its URL, network access, and CORS settings.");
+        } else {
+          notify(error?.message || "Something went wrong while processing the recording.");
+        }
+      } finally {
+        // This cleanup runs whether the request succeeded or failed.
+        clearTimeout(timeout); // Stop the request-cancel timer.
+        activeRequest = null;  // There is no active request anymore.
+        if (phase === "thinking") setPhase("idle"); // Leave playback status alone when speaking.
+      }
+    }
+
+    // Step 6: Start and stop the orb animation with the actual audio events.
+    replyAudio.addEventListener("play", () => {
+      if (phase === "idle" || phase === "thinking" || phase === "readyToPlay") setPhase("playing");
+    });
+    replyAudio.addEventListener("pause", () => {
+      if (phase === "playing") setPhase("idle");
+    });
+    replyAudio.addEventListener("ended", () => {
+      if (phase === "playing") setPhase("idle");
+    });
+    replyAudio.addEventListener("error", () => {
+      if (replyAudio.getAttribute("src")) notify("Could not play the voice reply. Check the server's audio format.");
+      if (phase === "playing" || phase === "readyToPlay") setPhase("idle");
+    });
+
+    // ===================== 13. HANDLE CLICKS ON THE ORB =====================
+    // addEventListener("click", ...) runs the callback when the user clicks/taps.
+    // The browser also triggers a click for Enter/Space on a focused button.
+    orbButton.addEventListener("click", () => {
+      // Ignore clicks while starting the microphone or waiting for the backend.
+      if (isStarting || phase === "thinking") return;
+
+      // If automatic playback was blocked, this tap can unlock browser audio.
+      if (phase === "readyToPlay") {
+        replyAudio.play().catch(error => {
+          console.warn("Voice playback failed:", error);
+          setPhase("readyToPlay");
+          notify("Unable to play the reply. Tap the orb to retry.");
+        });
+        return;
+      }
+
+      // While speaking, tapping the orb interrupts speech and records a new turn.
+      if (phase === "recording") {
+        stopRecording();
+      } else {
+        if (phase === "playing") setPhase("idle");
+        startRecording();
+      }
+    });
+
+    // ===================== 14. CLEAN UP WHEN THE PAGE CLOSES =====================
+    // "pagehide" happens when the user navigates away or closes the page.
+    window.addEventListener("pagehide", () => {
+      isUnloading = true; // Tell processAudio not to send more work.
+      // Stop an unfinished recording before the page disappears.
+      if (recorder && recorder.state !== "inactive") {
+        recorder.stop();
+      }
+      releaseMicrophone();  // Give up microphone access.
+      activeRequest?.abort(); // Cancel pending server work if a request exists.
+      clearPreviousReply();     // Stop audio and release its temporary URL.
+    });
+
+    // ===================== 15. INITIALIZE THE APP =====================
+    // Put the UI into its normal ready-to-record state on the first page load.
+    setPhase("idle");
+  </script>
+</body>
+</html>
