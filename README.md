@@ -4,7 +4,7 @@
 
 AI Research in Sindhi language is evoluting at a fast pace; moreover, Sindhu can be a good contributer in it.
 
-![Sindhu Banner](./sindhu-github-banner.svg)
+![Sindhu Banner](./sindhugithubbanner.svg)
 
 [Live Demo Link](https://sindhu-teal.vercel.app/) · [Report Bug, Request Feature](ibrahimbhatti.dev@gmail.com) 
 
